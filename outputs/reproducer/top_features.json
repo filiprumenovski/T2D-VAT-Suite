@@ -1,0 +1,142 @@
+[
+  {
+    "feature": "P46060",
+    "importance": 0.08261906125596073,
+    "protein_id": "P46060",
+    "gene_name": "RANGAP1",
+    "protein_name": "Ran GTPase-activating protein 1"
+  },
+  {
+    "feature": "P17661",
+    "importance": 0.06477271569891065,
+    "protein_id": "P17661",
+    "gene_name": "DES",
+    "protein_name": "Desmin"
+  },
+  {
+    "feature": "Q9UBY9",
+    "importance": 0.05979054849486554,
+    "protein_id": "Q9UBY9",
+    "gene_name": "HSPB7",
+    "protein_name": "Heat shock protein beta-7"
+  },
+  {
+    "feature": "Q8WZ42",
+    "importance": 0.05713302248809362,
+    "protein_id": "Q8WZ42",
+    "gene_name": "TTN",
+    "protein_name": "Titin"
+  },
+  {
+    "feature": "Q00341",
+    "importance": 0.054904590425918096,
+    "protein_id": "Q00341",
+    "gene_name": "HDLBP",
+    "protein_name": "Vigilin"
+  },
+  {
+    "feature": "P60228",
+    "importance": 0.05344155223426899,
+    "protein_id": "P60228",
+    "gene_name": "EIF3E",
+    "protein_name": "Eukaryotic translation initiation factor 3 subunit E"
+  },
+  {
+    "feature": "P07451",
+    "importance": 0.05073489335998655,
+    "protein_id": "P07451",
+    "gene_name": "CA3",
+    "protein_name": "Carbonic anhydrase 3"
+  },
+  {
+    "feature": "P17050",
+    "importance": 0.05012767454968084,
+    "protein_id": "P17050",
+    "gene_name": "NAGA",
+    "protein_name": "Alpha-N-acetylgalactosaminidase"
+  },
+  {
+    "feature": "P62273",
+    "importance": 0.04831540708568193,
+    "protein_id": "P62273",
+    "gene_name": "RPS29",
+    "protein_name": "40S ribosomal protein S29"
+  },
+  {
+    "feature": "P20742",
+    "importance": 0.047866265792337374,
+    "protein_id": "P20742",
+    "gene_name": "PZP",
+    "protein_name": "Pregnancy zone protein"
+  },
+  {
+    "feature": "Q9UBI6",
+    "importance": 0.0471946929293294,
+    "protein_id": "Q9UBI6",
+    "gene_name": "GNG12",
+    "protein_name": "Guanine nucleotide-binding protein G(I)/G(S)/G(O) subunit gamma-12"
+  },
+  {
+    "feature": "Q9UQ35",
+    "importance": 0.044778521142196735,
+    "protein_id": "Q9UQ35",
+    "gene_name": "SRRM2",
+    "protein_name": "Serine/arginine repetitive matrix protein 2"
+  },
+  {
+    "feature": "O00584",
+    "importance": 0.04395703165271686,
+    "protein_id": "O00584",
+    "gene_name": "RNASET2",
+    "protein_name": "Ribonuclease T2"
+  },
+  {
+    "feature": "Q96A00",
+    "importance": 0.04341572532418885,
+    "protein_id": "Q96A00",
+    "gene_name": "PPP1R14A",
+    "protein_name": "Protein phosphatase 1 regulatory subunit 14A"
+  },
+  {
+    "feature": "P62877",
+    "importance": 0.04249401599517835,
+    "protein_id": "P62877",
+    "gene_name": "RBX1",
+    "protein_name": "E3 ubiquitin-protein ligase RBX1;E3 ubiquitin-protein ligase RBX1, N-terminally processed"
+  },
+  {
+    "feature": "P20962",
+    "importance": 0.04140364744775929,
+    "protein_id": "P20962",
+    "gene_name": "PTMS",
+    "protein_name": "Parathymosin"
+  },
+  {
+    "feature": "O95202",
+    "importance": 0.04068464538413964,
+    "protein_id": "O95202",
+    "gene_name": "LETM1",
+    "protein_name": "LETM1 and EF-hand domain-containing protein 1, mitochondrial"
+  },
+  {
+    "feature": "Q9NZ45",
+    "importance": 0.04053333846689028,
+    "protein_id": "Q9NZ45",
+    "gene_name": "CISD1",
+    "protein_name": "CDGSH iron-sulfur domain-containing protein 1"
+  },
+  {
+    "feature": "P49755",
+    "importance": 0.04038604367510341,
+    "protein_id": "P49755",
+    "gene_name": "TMED10",
+    "protein_name": "Transmembrane emp24 domain-containing protein 10"
+  },
+  {
+    "feature": "P49915",
+    "importance": 0.040273677198956456,
+    "protein_id": "P49915",
+    "gene_name": "GMPS",
+    "protein_name": "GMP synthase [glutamine-hydrolyzing]"
+  }
+]

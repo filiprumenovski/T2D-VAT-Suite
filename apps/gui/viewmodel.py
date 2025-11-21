@@ -1,10 +1,12 @@
 import sys
 import json
 import traceback
+import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-from PySide6.QtCore import QObject, Signal, Slot, Property, QThread, QRunnable, QThreadPool
+from PySide6.QtCore import QObject, Signal, Slot, Property, QThread, QRunnable, QThreadPool, QUrl
+from PySide6.QtGui import QDesktopServices
 
 # Import core logic
 from t2dvat_core.io import load_protein_table
@@ -176,6 +178,12 @@ class ViewModel(QObject):
             self._injector_metrics = val
             self.injectorMetricsChanged.emit()
 
+    @Slot()
+    def openOutputFolder(self):
+        """Opens the current output directory in the OS file explorer."""
+        if self._outputDir:
+            QDesktopServices.openUrl(QUrl.fromLocalFile(self._outputDir))
+
     # Logic
     def _run_reproducer_task(self, input_path, out_dir_str, top_n, progress_callback):
         progress_callback.emit(f"Loading data from {input_path}...")
@@ -258,7 +266,7 @@ class ViewModel(QObject):
         self.reproducerImages = []
 
         worker = Worker(
-            self._run_reproducer_task, 
+            self._run_reproducer_task,
             self._input_path, 
             self._output_dir, 
             self._reproducer_top_n
@@ -343,9 +351,10 @@ class ViewModel(QObject):
             json.dump(metrics, f, indent=2)
 
         top_feats_sorted = top_feats.sort_values("importance", ascending=False)
+        top_features_list = top_feats_sorted.head(top_n).to_dict(orient="records")
         with open(out_dir / "top_features.json", "w") as f:
             json.dump(
-                top_feats_sorted.head(top_n).to_dict(orient="records"),
+                top_features_list,
                 f,
                 indent=2,
             )
@@ -364,7 +373,7 @@ class ViewModel(QObject):
         self.injectorMetrics = ""
 
         worker = Worker(
-            self._run_injector_task, 
+            self._run_injector_task,
             self._input_path, 
             self._output_dir, 
             self._injector_top_n
