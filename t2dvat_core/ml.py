@@ -5,17 +5,30 @@ Implements ML pipeline for DM vs NDM classification using scikit-learn models
 with cross-validation and feature importance analysis.
 """
 
+import os
 from pathlib import Path
 from typing import Tuple
 
-import pandas as pd
+os.environ.setdefault("MPLBACKEND", "Agg")
+
 import numpy as np
-from sklearn.linear_model import LogisticRegression
+import pandas as pd
+import seaborn as sns
+from matplotlib import pyplot as plt
 from sklearn.cluster import KMeans
-from sklearn.model_selection import cross_validate
-from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import roc_curve, auc, confusion_matrix, adjusted_rand_score
-import matplotlib.pyplot as plt
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import adjusted_rand_score, auc, confusion_matrix, roc_curve
+from sklearn.model_selection import StratifiedKFold, cross_validate
+
+sns.set_theme(
+    style="whitegrid",
+    rc={
+        "figure.dpi": 600,
+        "savefig.dpi": 600,
+        "savefig.transparent": True,
+        "font.family": "Helvetica",
+    },
+)
 
 from t2dvat_core.io import ProteinTable
 from t2dvat_core.utils import ensure_directory
@@ -159,9 +172,9 @@ def plot_roc_curve(y_true: np.ndarray, y_pred_proba: np.ndarray, out_path: str) 
     roc_auc = auc(fpr, tpr)
 
     ensure_directory(Path(out_path).parent)
-    fig, ax = plt.subplots(figsize=(5, 4), dpi=300)
-    ax.plot(fpr, tpr, color="#1f78b4", lw=2, label=f"AUC = {roc_auc:.2f}")
-    ax.plot([0, 1], [0, 1], linestyle="--", color="#6c6c6c", lw=1)
+    fig, ax = plt.subplots(figsize=(5, 4), dpi=600)
+    sns.lineplot(x=fpr, y=tpr, color="#1f78b4", lw=2, label=f"AUC = {roc_auc:.2f}", ax=ax)
+    sns.lineplot(x=[0, 1], y=[0, 1], linestyle="--", color="#6c6c6c", lw=1, ax=ax, label="Chance")
     ax.set_xlabel("False Positive Rate")
     ax.set_ylabel("True Positive Rate")
     ax.set_title("ROC Curve")
@@ -189,28 +202,24 @@ def plot_confusion_matrix(
     cm = confusion_matrix(y_true, y_pred)
 
     ensure_directory(Path(out_path).parent)
-    fig, ax = plt.subplots(figsize=(4, 4), dpi=300)
-    im = ax.imshow(cm, interpolation="nearest", cmap="Blues")
+    fig, ax = plt.subplots(figsize=(4, 4), dpi=600)
+    sns.heatmap(
+        cm,
+        annot=True,
+        fmt="d",
+        cmap="Blues",
+        cbar_kws={"label": "Count"},
+        xticklabels=["NDM", "DM"],
+        yticklabels=["NDM", "DM"],
+        ax=ax,
+    )
     ax.set_title("Confusion Matrix")
     ax.set_xlabel("Predicted label")
     ax.set_ylabel("True label")
-    ax.set_xticks([0, 1])
-    ax.set_yticks([0, 1])
-    ax.set_xticklabels(["NDM", "DM"])
-    ax.set_yticklabels(["NDM", "DM"])
-
-    for i in range(cm.shape[0]):
-        for j in range(cm.shape[1]):
-            ax.text(
-                j,
-                i,
-                cm[i, j],
-                ha="center",
-                va="center",
-                color="black" if cm[i, j] < cm.max() / 2 else "white",
-            )
-
-    fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04, label="Count")
+    contrast_threshold = cm.max() / 2
+    for text in ax.texts:
+        value = int(text.get_text())
+        text.set_color("white" if value > contrast_threshold else "black")
     fig.tight_layout()
     fig.savefig(out_path, transparent=True)
     plt.close(fig)
@@ -232,11 +241,19 @@ def plot_feature_importance_topN(
         Path where PNG figure will be saved.
     """
     top = feature_importances.sort_values("importance", ascending=False).head(N)
+    ordered = top.iloc[::-1]
 
     ensure_directory(Path(out_path).parent)
-    fig, ax = plt.subplots(figsize=(8, max(4, N * 0.4)), dpi=300)
-    ax.barh(top["feature"][::-1], top["importance"][::-1], color="#1f78b4")
+    fig, ax = plt.subplots(figsize=(8, max(4, N * 0.4)), dpi=600)
+    sns.barplot(
+        data=ordered,
+        x="importance",
+        y="feature",
+        palette="Blues_d",
+        ax=ax,
+    )
     ax.set_xlabel("Importance")
+    ax.set_ylabel("")
     ax.set_title(f"Top {N} predictive proteins")
     fig.tight_layout()
     fig.savefig(out_path, transparent=True)

@@ -20,7 +20,7 @@ We are building **one repository** with **two mini-tools** that share a common b
 
 ## Tool 1 — Reproducer
 
-Input: Excel protein table from *Scientific Reports* 2021 T2D proteomics paper. Goal: Reproduce core scientific figures using Matplotlib. Outputs:
+Input: Excel protein table from *Scientific Reports* 2021 T2D proteomics paper. Goal: Reproduce core scientific figures using Seaborn. Outputs:
 
 - QC barplots
 - PCA
@@ -40,7 +40,7 @@ Input: Same protein table. Goal: Inject an ML classifier layer (logistic regress
 
 Common core logic lives in **t2dvat\_core/**.
 
-Both tools get optional **PySide6/QML GUIs** that simply display generated images. They do NOT render plots natively. All figures are exported as PNG/SVG via Matplotlib.
+Both tools get optional **PySide6/QML GUIs** that simply display generated images. They do NOT render plots natively. All figures are exported as PNG/SVG via Seaborn (Matplotlib backend).
 
 ---
 
@@ -179,7 +179,7 @@ Stop only when you can print:
 
 ---
 
-## Phase 4 — `plots.py`: Matplotlib Scientific Figures
+## Phase 4 — `plots.py`: Seaborn Scientific Figures
 
 Implement:
 
@@ -279,7 +279,7 @@ Stop when both results.json + figures exist.
 
 ### GUI Principle
 
-QML **does not** generate scientific plots. It simply **embeds** Matplotlib PNG/SVG files.
+QML **does not** generate scientific plots. It simply **embeds** Seaborn-generated PNG/SVG files.
 
 ### Reproducer GUI
 
@@ -321,7 +321,7 @@ python -m apps.injector.cli \
 
 ---
 
-# 6. Matplotlib Styling Requirements
+# 6. Seaborn Styling Requirements
 
 LLM should enforce:
 
@@ -344,4 +344,3 @@ When both tools are complete, the repository provides:
 - A clean, modular backend that supports future datasets
 
 This document contains the full blueprint for an LLM coding agent to implement the system end-to-end.
-

@@ -7,7 +7,7 @@ A modular Python toolkit for reproducing scientific figures and injecting ML cla
 - **Reproducer Tool**: Regenerate publication figures (PCA, volcano, heatmap, QC plots)
 - **ML Injector Tool**: Train and evaluate ML classifiers for DM vs NDM prediction
 - **Modular Architecture**: Shared core backend supporting future extensions
-- **Scientific Visualization**: Publication-grade plots using Matplotlib
+- **Scientific Visualization**: Publication-grade plots using Seaborn
 - **Optional GUIs**: PySide6/QML frontends for interactive viewing
 
 ## Installation

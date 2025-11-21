@@ -2,29 +2,33 @@
 Scientific visualization and figure generation.
 
 Generates publication-grade figures including QC, PCA, volcano, heatmap, and
-enrichment plots using Matplotlib.
+enrichment plots using Seaborn.
 """
 
+import os
 from pathlib import Path
+
+os.environ.setdefault("MPLBACKEND", "Agg")
 
 import numpy as np
 import pandas as pd
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+import seaborn as sns
+from matplotlib import pyplot as plt
 from sklearn.decomposition import PCA
 
 from t2dvat_core.io import ProteinTable
 from t2dvat_core.utils import ensure_directory
 
-plt.rcParams.update(
-    {
-        "figure.dpi": 300,
+sns.set_theme(
+    style="whitegrid",
+    rc={
+        "figure.dpi": 600,
+        "savefig.dpi": 600,
         "savefig.transparent": True,
         "font.family": "Helvetica",
         "axes.spines.top": False,
         "axes.spines.right": False,
-    }
+    },
 )
 
 
@@ -41,19 +45,31 @@ def plot_total_intensity_per_sample(pt: ProteinTable, out_path: str) -> None:
     """
     totals = pt.X.sum(axis=0)
     groups = pt.sample_meta.set_index("sample_id").loc[totals.index, "group"]
-    colors = groups.map({"DM": "#d94841", "NDM": "#1f78b4"})
+    palette = {"DM": "#d94841", "NDM": "#1f78b4"}
+    plot_df = pd.DataFrame(
+        {
+            "sample_id": totals.index,
+            "total_intensity": totals.values,
+            "group": groups.values,
+        }
+    )
 
     ensure_directory(Path(out_path).parent)
     fig, ax = plt.subplots(figsize=(10, 4))
-    ax.bar(totals.index, totals.values, color=colors)
+    sns.barplot(
+        data=plot_df,
+        x="sample_id",
+        y="total_intensity",
+        hue="group",
+        palette=palette,
+        dodge=False,
+        ax=ax,
+    )
     ax.set_ylabel("Total intensity")
     ax.set_xlabel("Sample")
     ax.set_title("Total protein intensity per sample")
     ax.tick_params(axis="x", rotation=45, labelsize=8)
-    ax.legend(handles=[
-        plt.Line2D([0], [0], color="#d94841", lw=6, label="DM"),
-        plt.Line2D([0], [0], color="#1f78b4", lw=6, label="NDM"),
-    ])
+    ax.legend(title="Group")
     fig.tight_layout()
     fig.savefig(out_path)
     plt.close(fig)
@@ -72,19 +88,31 @@ def plot_protein_counts_per_sample(pt: ProteinTable, out_path: str) -> None:
     """
     counts = (pt.X.fillna(0) > 0).sum(axis=0)
     groups = pt.sample_meta.set_index("sample_id").loc[counts.index, "group"]
-    colors = groups.map({"DM": "#d94841", "NDM": "#1f78b4"})
+    palette = {"DM": "#d94841", "NDM": "#1f78b4"}
+    plot_df = pd.DataFrame(
+        {
+            "sample_id": counts.index,
+            "detected_proteins": counts.values,
+            "group": groups.values,
+        }
+    )
 
     ensure_directory(Path(out_path).parent)
     fig, ax = plt.subplots(figsize=(10, 4))
-    ax.bar(counts.index, counts.values, color=colors)
+    sns.barplot(
+        data=plot_df,
+        x="sample_id",
+        y="detected_proteins",
+        hue="group",
+        palette=palette,
+        dodge=False,
+        ax=ax,
+    )
     ax.set_ylabel("Detected proteins")
     ax.set_xlabel("Sample")
     ax.set_title("Protein counts per sample")
     ax.tick_params(axis="x", rotation=45, labelsize=8)
-    ax.legend(handles=[
-        plt.Line2D([0], [0], color="#d94841", lw=6, label="DM"),
-        plt.Line2D([0], [0], color="#1f78b4", lw=6, label="NDM"),
-    ])
+    ax.legend(title="Group")
     fig.tight_layout()
     fig.savefig(out_path)
     plt.close(fig)
@@ -113,16 +141,23 @@ def plot_pca(pt: ProteinTable, out_path: str, raw_pt: ProteinTable | None = None
 
     coords = pd.DataFrame(pcs, index=X_centered.index, columns=["PC1", "PC2"])
     coords["group"] = pt.sample_meta.set_index("sample_id").loc[coords.index, "group"]
-    colors = coords["group"].map({"DM": "#d94841", "NDM": "#1f78b4"})
 
     ensure_directory(Path(out_path).parent)
     fig, ax = plt.subplots(figsize=(6, 5))
-    ax.scatter(coords["PC1"], coords["PC2"], c=colors, s=70, edgecolor="black", alpha=0.8)
+    sns.scatterplot(
+        data=coords,
+        x="PC1",
+        y="PC2",
+        hue="group",
+        palette={"DM": "#d94841", "NDM": "#1f78b4"},
+        s=70,
+        edgecolor="black",
+        alpha=0.8,
+        ax=ax,
+    )
     ax.set_xlabel(f"PC1 ({pca.explained_variance_ratio_[0]*100:.1f}% var)")
     ax.set_ylabel(f"PC2 ({pca.explained_variance_ratio_[1]*100:.1f}% var)")
     ax.set_title("PCA of samples")
-    for grp, data in coords.groupby("group"):
-        ax.scatter([], [], c={"DM": "#d94841", "NDM": "#1f78b4"}[grp], label=grp, s=70)
     ax.legend(title="Group")
     fig.tight_layout()
     fig.savefig(out_path)
@@ -152,26 +187,22 @@ def plot_cluster_pca(
 
     coords = pd.DataFrame(pcs, index=X_centered.index, columns=["PC1", "PC2"])
     coords["cluster"] = cluster_labels
-    
-    # Map clusters to colors
-    unique_clusters = np.unique(cluster_labels)
-    colors = ["#e41a1c", "#377eb8", "#4daf4a", "#984ea3"] # Set 1 palette
-    
+
+    palette = sns.color_palette("Set1", n_colors=len(np.unique(cluster_labels)))
+
     ensure_directory(Path(out_path).parent)
     fig, ax = plt.subplots(figsize=(6, 5))
-    
-    for i, cluster in enumerate(unique_clusters):
-        mask = coords["cluster"] == cluster
-        color = colors[i % len(colors)]
-        ax.scatter(
-            coords.loc[mask, "PC1"], 
-            coords.loc[mask, "PC2"], 
-            c=color, 
-            label=f"Cluster {cluster}", 
-            s=70, 
-            edgecolor="black", 
-            alpha=0.8
-        )
+    sns.scatterplot(
+        data=coords,
+        x="PC1",
+        y="PC2",
+        hue="cluster",
+        palette=palette,
+        s=70,
+        edgecolor="black",
+        alpha=0.8,
+        ax=ax,
+    )
 
     ax.set_xlabel(f"PC1 ({pca.explained_variance_ratio_[0]*100:.1f}% var)")
     ax.set_ylabel(f"PC2 ({pca.explained_variance_ratio_[1]*100:.1f}% var)")
@@ -213,34 +244,41 @@ def plot_volcano(diff_df: pd.DataFrame, out_path: str) -> None:
     else:
         raise ValueError("No fold-change column available for volcano plot.")
 
-    neglog = -np.log10(pvals.clip(lower=1e-300))
-
     # Use provided significance mask if present, otherwise threshold-based
     if "RepeatedlySignificant" in diff_df.columns:
         sig_mask = diff_df["RepeatedlySignificant"].astype(bool)
     else:
         sig_mask = (pvals < 0.05) & (log2_fc.abs() > 1)
 
+    neglog = -np.log10(pvals.clip(lower=1e-300))
+    plot_df = pd.DataFrame(
+        {
+            "log2_fc": log2_fc,
+            "neg_log10_p": neglog,
+            "significant": sig_mask,
+        }
+    )
+
     ensure_directory(Path(out_path).parent)
     fig, ax = plt.subplots(figsize=(7, 6))
-
-    # Non-significant
-    ax.scatter(
-        log2_fc[~sig_mask],
-        neglog[~sig_mask],
+    sns.scatterplot(
+        data=plot_df[~plot_df["significant"]],
+        x="log2_fc",
+        y="neg_log10_p",
         color="black",
         s=20,
         alpha=0.6,
+        ax=ax,
         label="Not Significant",
     )
-
-    # Significant points styled to match paper-like look
-    ax.scatter(
-        log2_fc[sig_mask],
-        neglog[sig_mask],
+    sns.scatterplot(
+        data=plot_df[plot_df["significant"]],
+        x="log2_fc",
+        y="neg_log10_p",
         color="lightgrey",
-        edgecolors="black",
+        edgecolor="black",
         s=100,
+        ax=ax,
         label=f"Significant (n={sig_mask.sum()})",
     )
 
@@ -316,22 +354,22 @@ def plot_topN_heatmap(
 
     ensure_directory(Path(out_path).parent)
     fig, ax = plt.subplots(figsize=(10, max(4, N * 0.3)))
-    im = ax.imshow(zscores, aspect="auto", cmap="coolwarm", vmin=-2, vmax=2)
-    ax.set_yticks(range(len(top_ids)))
-    ax.set_yticklabels(gene_labels)
-    ax.set_xticks(range(len(sample_labels)))
-    ax.set_xticklabels(sample_labels, rotation=45, ha="right")
+    sns.heatmap(
+        zscores,
+        cmap="coolwarm",
+        vmin=-2,
+        vmax=2,
+        xticklabels=sample_labels,
+        yticklabels=gene_labels,
+        cbar_kws={"label": "Z-score (row-wise)"},
+        ax=ax,
+    )
     ax.set_title(f"Top {N} proteins by significance")
-
-    for i, color in enumerate(group_colors):
-        ax.add_patch(
-            plt.Rectangle(
-                (i - 0.5, -0.6), 1, 0.2, color=color, transform=ax.transData, clip_on=False
-            )
-        )
-
-    cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-    cbar.set_label("Z-score (row-wise)")
+    ax.set_xlabel("Sample")
+    ax.set_ylabel("")
+    ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
+    for tick, color in zip(ax.get_xticklabels(), group_colors):
+        tick.set_color(color)
     fig.tight_layout()
     fig.savefig(out_path)
     plt.close(fig)

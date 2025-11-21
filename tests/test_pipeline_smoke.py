@@ -6,9 +6,10 @@ steps run end-to-end on the provided dataset and write expected outputs.
 """
 
 from pathlib import Path
+import os
 import warnings
 
-import matplotlib
+os.environ.setdefault("MPLBACKEND", "Agg")
 
 from sklearn.exceptions import ConvergenceWarning
 
@@ -30,8 +31,6 @@ from t2dvat_core.ml import (
     plot_feature_importance_topN,
 )
 
-
-matplotlib.use("Agg")
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=ConvergenceWarning)

@@ -162,6 +162,10 @@ def run_injector_task(input_path, out_dir_str, top_n, progress_callback):
         json.dump(metrics, f, indent=2)
 
     top_feats_sorted = top_feats.sort_values("importance", ascending=False)
+    
+    # Save ALL features
+    top_feats_sorted.to_json(out_dir / "all_features.json", orient="records", indent=2, date_format="iso")
+
     top_features_list = top_feats_sorted.head(top_n).to_dict(orient="records")
     with open(out_dir / "top_features.json", "w") as f:
         json.dump(
