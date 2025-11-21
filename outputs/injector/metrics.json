@@ -11,5 +11,10 @@
     "precision": 1.0,
     "recall": 1.0,
     "f1": 1.0
+  },
+  "clustering": {
+    "adjusted_rand_index": 0.04422332780541736,
+    "inertia": 29755.666282608945,
+    "n_clusters": 2
   }
 }

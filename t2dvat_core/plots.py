@@ -129,6 +129,59 @@ def plot_pca(pt: ProteinTable, out_path: str, raw_pt: ProteinTable | None = None
     plt.close(fig)
 
 
+def plot_cluster_pca(
+    pt: ProteinTable, cluster_labels: np.ndarray, out_path: str
+) -> None:
+    """
+    Generate PCA plot colored by unsupervised cluster labels.
+
+    Parameters
+    ----------
+    pt : ProteinTable
+        Protein table with abundance matrix.
+    cluster_labels : np.ndarray
+        Cluster assignments from K-Means.
+    out_path : str
+        Path where PNG figure will be saved.
+    """
+    X_samples = pt.X.T.fillna(0)
+    X_centered = X_samples - X_samples.mean(axis=0)
+
+    pca = PCA(n_components=2)
+    pcs = pca.fit_transform(X_centered)
+
+    coords = pd.DataFrame(pcs, index=X_centered.index, columns=["PC1", "PC2"])
+    coords["cluster"] = cluster_labels
+    
+    # Map clusters to colors
+    unique_clusters = np.unique(cluster_labels)
+    colors = ["#e41a1c", "#377eb8", "#4daf4a", "#984ea3"] # Set 1 palette
+    
+    ensure_directory(Path(out_path).parent)
+    fig, ax = plt.subplots(figsize=(6, 5))
+    
+    for i, cluster in enumerate(unique_clusters):
+        mask = coords["cluster"] == cluster
+        color = colors[i % len(colors)]
+        ax.scatter(
+            coords.loc[mask, "PC1"], 
+            coords.loc[mask, "PC2"], 
+            c=color, 
+            label=f"Cluster {cluster}", 
+            s=70, 
+            edgecolor="black", 
+            alpha=0.8
+        )
+
+    ax.set_xlabel(f"PC1 ({pca.explained_variance_ratio_[0]*100:.1f}% var)")
+    ax.set_ylabel(f"PC2 ({pca.explained_variance_ratio_[1]*100:.1f}% var)")
+    ax.set_title("Unsupervised Clustering (PCA)")
+    ax.legend(title="Cluster")
+    fig.tight_layout()
+    fig.savefig(out_path)
+    plt.close(fig)
+
+
 def plot_volcano(diff_df: pd.DataFrame, out_path: str) -> None:
     """
     Generate volcano plot of differential expression results.

@@ -9,7 +9,7 @@ import argparse
 import json
 from pathlib import Path
 
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, adjusted_rand_score
 
 from t2dvat_core.io import load_protein_table
 from t2dvat_core.preprocessing import make_analysis_ready
@@ -17,10 +17,12 @@ from t2dvat_core.utils import ensure_directory
 from t2dvat_core.ml import (
     make_ml_matrix,
     train_classifier,
+    perform_clustering,
     plot_roc_curve,
     plot_confusion_matrix,
     plot_feature_importance_topN,
 )
+from t2dvat_core.plots import plot_cluster_pca
 
 
 def main() -> None:
@@ -31,8 +33,9 @@ def main() -> None:
     1. Load and preprocess protein table
     2. Create ML feature matrix
     3. Train classifier with cross-validation
-    4. Generate ML plots (ROC, confusion matrix, feature importance)
-    5. Write metrics.json and top_features.json
+    4. Perform unsupervised clustering
+    5. Generate ML plots (ROC, confusion matrix, feature importance, cluster PCA)
+    6. Write metrics.json and top_features.json
     """
     parser = argparse.ArgumentParser(description="Inject ML classifier for DM vs NDM.")
     parser.add_argument("--input", required=True, help="Path to Excel input file.")
@@ -55,6 +58,9 @@ def main() -> None:
     pt = make_analysis_ready(pt_raw)
 
     X, y, feature_meta = make_ml_matrix(pt)
+    
+    # Supervised Learning
+    print("Training classifier...")
     metrics_cv, model, feature_importances = train_classifier(X, y)
 
     y_pred_proba = model.predict_proba(X)[:, 1]
@@ -70,6 +76,14 @@ def main() -> None:
     plot_df["feature"] = plot_df["gene_name"].fillna(plot_df["feature"])
     plot_feature_importance_topN(plot_df, args.topN, fig_dir / "feature_importance.png")
 
+    # Unsupervised Clustering
+    print("Performing unsupervised clustering...")
+    cluster_labels, inertia = perform_clustering(X, n_clusters=2)
+    ari = adjusted_rand_score(y, cluster_labels)
+    print(f"Clustering ARI (vs True Labels): {ari:.3f}")
+    
+    plot_cluster_pca(pt, cluster_labels, fig_dir / "cluster_pca.png")
+
     metrics = {
         "cross_validation": metrics_cv,
         "training": {
@@ -78,6 +92,11 @@ def main() -> None:
             "recall": float(recall_score(y, y_pred, zero_division=0)),
             "f1": float(f1_score(y, y_pred, zero_division=0)),
         },
+        "clustering": {
+            "adjusted_rand_index": float(ari),
+            "inertia": float(inertia),
+            "n_clusters": 2
+        }
     }
 
     with open(out_dir / "metrics.json", "w") as f:
@@ -90,7 +109,4 @@ def main() -> None:
             f,
             indent=2,
         )
-
-
-if __name__ == "__main__":
-    main()
+    print(f"Done! Results saved to {out_dir}")

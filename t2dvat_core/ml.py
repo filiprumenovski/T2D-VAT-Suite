@@ -11,9 +11,10 @@ from typing import Tuple
 import pandas as pd
 import numpy as np
 from sklearn.linear_model import LogisticRegression
+from sklearn.cluster import KMeans
 from sklearn.model_selection import cross_validate
 from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import roc_curve, auc, confusion_matrix
+from sklearn.metrics import roc_curve, auc, confusion_matrix, adjusted_rand_score
 import matplotlib.pyplot as plt
 
 from t2dvat_core.io import ProteinTable
@@ -116,6 +117,29 @@ def train_classifier(
     ).sort_values("importance", ascending=False)
 
     return metrics, clf, feature_importances
+
+
+def perform_clustering(X: pd.DataFrame, n_clusters: int = 2) -> Tuple[np.ndarray, float]:
+    """
+    Perform K-Means clustering to find natural subgroups.
+
+    Parameters
+    ----------
+    X : pd.DataFrame
+        Feature matrix.
+    n_clusters : int
+        Number of clusters to find.
+
+    Returns
+    -------
+    cluster_labels : np.ndarray
+        Cluster assignments for each sample.
+    inertia : float
+        Sum of squared distances of samples to their closest cluster center.
+    """
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+    cluster_labels = kmeans.fit_predict(X)
+    return cluster_labels, kmeans.inertia_
 
 
 def plot_roc_curve(y_true: np.ndarray, y_pred_proba: np.ndarray, out_path: str) -> None:
