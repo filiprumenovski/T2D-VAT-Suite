@@ -19,7 +19,7 @@ class ProteinTable:
     Attributes
     ----------
     proteins : pd.DataFrame
-        Protein metadata with index=protein_id and columns [gene_name, protein_name].
+        Protein metadata with index=protein_id and columns [gene_name, protein_name, ...].
     X : pd.DataFrame
         Abundance matrix with index=protein_id and columns=sample_ids.
     sample_meta : pd.DataFrame
@@ -50,7 +50,12 @@ def infer_group(col_name: str) -> str:
     ValueError
         If neither "DM" nor "NDM" is found in the column name.
     """
-    pass
+    upper = col_name.upper()
+    if "NDM" in upper:
+        return "NDM"
+    if "DM" in upper:
+        return "DM"
+    raise ValueError(f"Cannot infer group from column name: {col_name}")
 
 
 def load_protein_table(path: str) -> ProteinTable:
@@ -78,4 +83,31 @@ def load_protein_table(path: str) -> ProteinTable:
     - Name: protein description
     - Abundance.* : numeric abundance values per sample
     """
-    pass
+    path = Path(path)
+    df = pd.read_excel(path, header=1)
+
+    abundance_cols = [
+        col for col in df.columns if isinstance(col, str) and col.startswith("Abundance.")
+    ]
+    if not abundance_cols:
+        raise ValueError("No Abundance.* columns found in input file.")
+
+    sample_ids = [col.split("Abundance.", 1)[1] for col in abundance_cols]
+    sample_groups = [infer_group(col) for col in abundance_cols]
+
+    proteins = df[["Gene.name", "Name"]].copy()
+    proteins.columns = ["gene_name", "protein_name"]
+    # Preserve additional raw stats columns if present (used for paper-aligned plots)
+    for col in ["Fold-change (DM/NDM", "pValue", "qValue", "RepeatedlySignificant"]:
+        if col in df.columns:
+            proteins[col] = df[col].values
+    proteins.index = df["Accession"]
+
+    X = df[abundance_cols].copy()
+    X.columns = sample_ids
+    X.index = df["Accession"]
+    X = X.apply(pd.to_numeric, errors="coerce")
+
+    sample_meta = pd.DataFrame({"sample_id": sample_ids, "group": sample_groups})
+
+    return ProteinTable(proteins=proteins, X=X, sample_meta=sample_meta)

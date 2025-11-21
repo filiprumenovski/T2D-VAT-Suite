@@ -4,6 +4,8 @@ Utility functions for common operations.
 Helper functions for data manipulation, file I/O, and general utilities.
 """
 
+from pathlib import Path
+
 
 def ensure_directory(path: str) -> None:
     """
@@ -14,4 +16,4 @@ def ensure_directory(path: str) -> None:
     path : str
         Directory path to create.
     """
-    pass
+    Path(path).mkdir(parents=True, exist_ok=True)

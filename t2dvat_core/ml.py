@@ -11,10 +11,13 @@ from typing import Tuple
 import pandas as pd
 import numpy as np
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_validate
+from sklearn.model_selection import StratifiedKFold
+from sklearn.metrics import roc_curve, auc, confusion_matrix
+import matplotlib.pyplot as plt
 
 from t2dvat_core.io import ProteinTable
+from t2dvat_core.utils import ensure_directory
 
 
 def make_ml_matrix(
@@ -37,7 +40,20 @@ def make_ml_matrix(
     feature_meta : pd.DataFrame
         Feature metadata (protein_id, gene_name, protein_name).
     """
-    pass
+    sample_meta = pt.sample_meta.set_index("sample_id")
+    ordered_samples = list(pt.X.columns)
+    y = sample_meta.loc[ordered_samples, "group"].map({"NDM": 0, "DM": 1}).to_numpy()
+    X = pt.X.T.copy()
+
+    feature_meta = pd.DataFrame(
+        {
+            "protein_id": pt.X.index,
+            "gene_name": pt.proteins["gene_name"].values,
+            "protein_name": pt.proteins["protein_name"].values,
+        }
+    )
+
+    return X, y, feature_meta
 
 
 def train_classifier(
@@ -65,7 +81,41 @@ def train_classifier(
     feature_importances : pd.DataFrame
         Importance scores for each feature with columns [protein_id, importance].
     """
-    pass
+    if len(np.unique(y)) < 2:
+        raise ValueError("Need at least two classes for classification.")
+
+    min_class = int(np.bincount(y).min())
+    if min_class < 2:
+        raise ValueError("Not enough samples per class for cross-validation.")
+
+    cv_splits = min(5, min_class)
+    cv = StratifiedKFold(n_splits=cv_splits, shuffle=True, random_state=42)
+
+    clf = LogisticRegression(max_iter=1000, penalty="l2", solver="liblinear")
+    scoring = {
+        "accuracy": "accuracy",
+        "roc_auc": "roc_auc",
+        "precision": "precision",
+        "recall": "recall",
+        "f1": "f1",
+    }
+    cv_results = cross_validate(clf, X, y, scoring=scoring, cv=cv)
+    metrics = {k.replace("test_", ""): float(np.mean(v)) for k, v in cv_results.items() if k.startswith("test_")}
+
+    clf.fit(X, y)
+
+    if hasattr(clf, "coef_"):
+        importance_values = np.abs(clf.coef_[0])
+    elif hasattr(clf, "feature_importances_"):
+        importance_values = clf.feature_importances_
+    else:
+        importance_values = np.zeros(X.shape[1])
+
+    feature_importances = pd.DataFrame(
+        {"feature": X.columns, "importance": importance_values}
+    ).sort_values("importance", ascending=False)
+
+    return metrics, clf, feature_importances
 
 
 def plot_roc_curve(y_true: np.ndarray, y_pred_proba: np.ndarray, out_path: str) -> None:
@@ -81,7 +131,20 @@ def plot_roc_curve(y_true: np.ndarray, y_pred_proba: np.ndarray, out_path: str) 
     out_path : str
         Path where PNG figure will be saved.
     """
-    pass
+    fpr, tpr, _ = roc_curve(y_true, y_pred_proba)
+    roc_auc = auc(fpr, tpr)
+
+    ensure_directory(Path(out_path).parent)
+    fig, ax = plt.subplots(figsize=(5, 4), dpi=300)
+    ax.plot(fpr, tpr, color="#1f78b4", lw=2, label=f"AUC = {roc_auc:.2f}")
+    ax.plot([0, 1], [0, 1], linestyle="--", color="#6c6c6c", lw=1)
+    ax.set_xlabel("False Positive Rate")
+    ax.set_ylabel("True Positive Rate")
+    ax.set_title("ROC Curve")
+    ax.legend(loc="lower right")
+    fig.tight_layout()
+    fig.savefig(out_path, transparent=True)
+    plt.close(fig)
 
 
 def plot_confusion_matrix(
@@ -99,7 +162,34 @@ def plot_confusion_matrix(
     out_path : str
         Path where PNG figure will be saved.
     """
-    pass
+    cm = confusion_matrix(y_true, y_pred)
+
+    ensure_directory(Path(out_path).parent)
+    fig, ax = plt.subplots(figsize=(4, 4), dpi=300)
+    im = ax.imshow(cm, interpolation="nearest", cmap="Blues")
+    ax.set_title("Confusion Matrix")
+    ax.set_xlabel("Predicted label")
+    ax.set_ylabel("True label")
+    ax.set_xticks([0, 1])
+    ax.set_yticks([0, 1])
+    ax.set_xticklabels(["NDM", "DM"])
+    ax.set_yticklabels(["NDM", "DM"])
+
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            ax.text(
+                j,
+                i,
+                cm[i, j],
+                ha="center",
+                va="center",
+                color="black" if cm[i, j] < cm.max() / 2 else "white",
+            )
+
+    fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04, label="Count")
+    fig.tight_layout()
+    fig.savefig(out_path, transparent=True)
+    plt.close(fig)
 
 
 def plot_feature_importance_topN(
@@ -117,4 +207,13 @@ def plot_feature_importance_topN(
     out_path : str
         Path where PNG figure will be saved.
     """
-    pass
+    top = feature_importances.sort_values("importance", ascending=False).head(N)
+
+    ensure_directory(Path(out_path).parent)
+    fig, ax = plt.subplots(figsize=(8, max(4, N * 0.4)), dpi=300)
+    ax.barh(top["feature"][::-1], top["importance"][::-1], color="#1f78b4")
+    ax.set_xlabel("Importance")
+    ax.set_title(f"Top {N} predictive proteins")
+    fig.tight_layout()
+    fig.savefig(out_path, transparent=True)
+    plt.close(fig)
